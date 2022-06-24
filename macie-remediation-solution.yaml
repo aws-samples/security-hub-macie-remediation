@@ -1,0 +1,546 @@
+Resources:
+  CustomResourceLambdaRoleC810B87F:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      RoleName: CustomResourceLambdaRole
+  CreateSecHubCustomAction102FF71D:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: LambdaCodeSourceS3Bucket
+        S3Key:
+          Ref: CreateSecHubCustomAction
+      Role:
+        Fn::GetAtt:
+          - CustomResourceLambdaRoleC810B87F
+          - Arn
+      Description: Create AWS Security Hub Custom Action.
+      FunctionName: CreateSecHubCustomAction
+      Handler: create_sh_custom_action.lambda_handler
+      ReservedConcurrentExecutions: 100
+      Runtime: python3.9
+      Timeout: 300
+    DependsOn:
+      - CustomResourceLambdaRoleC810B87F
+    Metadata:
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  CustomResourceLambdaManagedPolicy4DC32DE6:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - securityhub:CreateActionTarget
+              - securityhub:DescribeActionTarget
+              - securityhub:UpdateActionTarget
+            Effect: Allow
+            Resource: "*"
+            Sid: CreateSecurityHubCustomAction
+        Version: "2012-10-17"
+      Description: Policy for automation to deploy Security Hub Custom Action.
+      ManagedPolicyName: CustomResourceLambdaManagedPolicy
+      Path: /
+      Roles:
+        - Ref: CustomResourceLambdaRoleC810B87F
+  ResourceProviderframeworkonEventServiceRole0C5450E7:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - Fn::Join:
+            - ""
+            - - "arn:"
+              - Ref: AWS::Partition
+              - :iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+  ResourceProviderframeworkonEventServiceRoleDefaultPolicyD6E38BA1:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action: lambda:InvokeFunction
+            Effect: Allow
+            Resource:
+              - Fn::GetAtt:
+                  - CreateSecHubCustomAction102FF71D
+                  - Arn
+              - Fn::Join:
+                  - ""
+                  - - Fn::GetAtt:
+                        - CreateSecHubCustomAction102FF71D
+                        - Arn
+                    - :*
+        Version: "2012-10-17"
+      PolicyName: ResourceProviderframeworkonEventServiceRoleDefaultPolicyD6E38BA1
+      Roles:
+        - Ref: ResourceProviderframeworkonEventServiceRole0C5450E7
+  ResourceProviderframeworkonEventE93EA26F:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: LambdaCodeSourceS3Bucket
+        S3Key:
+          Ref: ResourceProviderframeworkonEvent
+      Role:
+        Fn::GetAtt:
+          - ResourceProviderframeworkonEventServiceRole0C5450E7
+          - Arn
+      Description: AWS CDK resource provider framework - onEvent (MacieRemediationStack/ResourceProvider)
+      Environment:
+        Variables:
+          USER_ON_EVENT_FUNCTION_ARN:
+            Fn::GetAtt:
+              - CreateSecHubCustomAction102FF71D
+              - Arn
+      Handler: framework.onEvent
+      Runtime: nodejs12.x
+      Timeout: 900
+    DependsOn:
+      - ResourceProviderframeworkonEventServiceRoleDefaultPolicyD6E38BA1
+      - ResourceProviderframeworkonEventServiceRole0C5450E7
+    Metadata:
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  maciepolicycustomaction:
+    Type: Custom::ActionTarget
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - ResourceProviderframeworkonEventE93EA26F
+          - Arn
+      Name: Macie Policy Finding
+      Description: Custom Action for Macie Policy Findings.
+      Id: MacieS3BucketPolicy
+      Account:
+        Ref: AWS::AccountId
+      Partition:
+        Ref: AWS::Partition
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  maciesensitivedatacustomaction:
+    Type: Custom::ActionTarget
+    Properties:
+      ServiceToken:
+        Fn::GetAtt:
+          - ResourceProviderframeworkonEventE93EA26F
+          - Arn
+      Name: Macie Data Finding
+      Description: Custom Action for Macie Data Findings.
+      Id: MacieSensitiveData
+      Account:
+        Ref: AWS::AccountId
+      Partition:
+        Ref: AWS::Partition
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  remediates3bucketrole6483CD8F:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      RoleName: Macie_S3_Bucket_Remediation
+  RemediateS3BucketB3F4FC9C:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: LambdaCodeSourceS3Bucket
+        S3Key:
+          Ref: RemediateS3Bucket
+      Role:
+        Fn::GetAtt:
+          - remediates3bucketrole6483CD8F
+          - Arn
+      Description: Remediate S3 Bucket from a Macie finding.
+      Environment:
+        Variables:
+          ROLE_NAME:
+            Ref: remediates3bucketrole6483CD8F
+      FunctionName: Remediate_Macie_S3_Bucket
+      Handler: remediate_s3_bucket.lambda_handler
+      ReservedConcurrentExecutions: 100
+      Runtime: python3.9
+      Timeout: 300
+    DependsOn:
+      - remediates3bucketrole6483CD8F
+    Metadata:
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  lambdaRemediateS3BucketManagedPolicy990D39AA:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+            Effect: Allow
+            Resource: "*"
+            Sid: KMSUse
+          - Action:
+              - s3:PutBucketPublicAccessBlock
+              - s3:PutBucketTagging
+              - s3:PutEncryptionConfiguration
+            Effect: Allow
+            Resource: "*"
+            Sid: S3RemediateBucket
+          - Action: securityhub:BatchUpdateFindings
+            Effect: Allow
+            Resource: "*"
+            Sid: SecurityHubUpdate
+          - Action: sts:AssumeRole
+            Condition:
+              StringLike:
+                aws:PrincipalArn: arn:aws:iam::*:role/Macie_S3_Bucket_Remediation
+            Effect: Allow
+            Resource: "*"
+            Sid: IAMAssumerole
+        Version: "2012-10-17"
+      Description: ""
+      ManagedPolicyName: lambdaRemediateS3BucketManagedPolicy
+      Path: /
+      Roles:
+        - Ref: remediates3bucketrole6483CD8F
+  maciekmskeyFAFB97AD:
+    Type: AWS::KMS::Key
+    Properties:
+      KeyPolicy:
+        Statement:
+          - Action: kms:*
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::Join:
+                  - ""
+                  - - "arn:"
+                    - Ref: AWS::Partition
+                    - ":iam::"
+                    - Ref: AWS::AccountId
+                    - :root
+            Resource: "*"
+          - Action:
+              - kms:CreateGrant
+              - kms:ListGrants
+              - kms:RevokeGrant
+            Condition:
+              Bool:
+                kms:GrantIsForAWSResource: true
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::GetAtt:
+                  - remediates3objectroleD3CAB19B
+                  - Arn
+            Resource: "*"
+        Version: "2012-10-17"
+      Description: KMS key to reencrypt objects.
+      EnableKeyRotation: true
+      PendingWindowInDays: 7
+    UpdateReplacePolicy: Delete
+    DeletionPolicy: Delete
+  maciekmskeyAlias80F560E0:
+    Type: AWS::KMS::Alias
+    Properties:
+      AliasName: alias/macie_key
+      TargetKeyId:
+        Fn::GetAtt:
+          - maciekmskeyFAFB97AD
+          - Arn
+  remediates3objectroleD3CAB19B:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      RoleName: Macie_S3_Object_Remediation
+  remediates3objectroleDefaultPolicyDEE9C038:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - kms:Decrypt
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+              - kms:ReEncrypt*
+            Effect: Allow
+            Resource:
+              Fn::GetAtt:
+                - maciekmskeyFAFB97AD
+                - Arn
+        Version: "2012-10-17"
+      PolicyName: remediates3objectroleDefaultPolicyDEE9C038
+      Roles:
+        - Ref: remediates3objectroleD3CAB19B
+  RemediateS3Object37B5F1A5:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code:
+        S3Bucket:
+          Ref: LambdaCodeSourceS3Bucket
+        S3Key:
+          Ref: RemediateS3Object
+      Role:
+        Fn::GetAtt:
+          - remediates3objectroleD3CAB19B
+          - Arn
+      Description: Remediate S3 Object from a Macie finding.
+      Environment:
+        Variables:
+          KMS_KEY:
+            Fn::GetAtt:
+              - maciekmskeyFAFB97AD
+              - Arn
+          ROLE_NAME:
+            Ref: remediates3objectroleD3CAB19B
+      FunctionName: Remediate_Macie_S3_Object
+      Handler: remediate_s3_object.lambda_handler
+      ReservedConcurrentExecutions: 100
+      Runtime: python3.9
+      Timeout: 300
+    DependsOn:
+      - remediates3objectroleDefaultPolicyDEE9C038
+      - remediates3objectroleD3CAB19B
+    Metadata:
+      aws:asset:is-bundled: false
+      aws:asset:property: Code
+  lambdaRemediateS3ObjectManagedPolicy74407B44:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+            Effect: Allow
+            Resource: "*"
+            Sid: kmsAllowAccess
+          - Action:
+              - s3:PutObject
+              - s3:PutObjectTagging
+            Effect: Allow
+            Resource: "*"
+            Sid: S3RemediateObject
+          - Action: sts:AssumeRole
+            Condition:
+              StringLike:
+                aws:PrincipalArn: arn:aws:iam::*:role/Macie_S3_Object_Remediation
+            Effect: Allow
+            Resource: "*"
+            Sid: IAMAssumerole
+          - Action: securityhub:BatchUpdateFindings
+            Effect: Allow
+            Resource: "*"
+            Sid: SecurityHubUpdate
+        Version: "2012-10-17"
+      Description: ""
+      ManagedPolicyName: lambdaRemediateS3ObjectManagedPolicy
+      Path: /
+      Roles:
+        - Ref: remediates3objectroleD3CAB19B
+  AutomatedRespondMacieDatafinding74CDFFD2:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Automatically responds to a Macie S3 Sensitive Data finding in Security Hub.
+      EventPattern:
+        source:
+          - aws.securityhub
+        detail-type:
+          - Security Hub Findings - Imported
+        detail:
+          findings:
+            ProductName:
+              - Macie
+            Types:
+              - prefix: "Sensitive Data Identifications/PII/SensitiveData:"
+            WorkflowState:
+              - NEW
+            RecordState:
+              - ACTIVE
+      Name: Autoremediate_Macie_Sensitive_Data_Finding
+      State: DISABLED
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - RemediateS3Object37B5F1A5
+              - Arn
+          Id: Target0
+  AutomatedRespondMacieDatafindingAllowEventRuleMacieRemediationStackRemediateS3Object62EE29C6878380BD:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - RemediateS3Object37B5F1A5
+          - Arn
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+          - AutomatedRespondMacieDatafinding74CDFFD2
+          - Arn
+  AutomatedRespondMaciePolicyfinding0497B775:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Automatically responds to a Macie S3 Bucket Policy finding in Security Hub.
+      EventPattern:
+        source:
+          - aws.securityhub
+        detail-type:
+          - Security Hub Findings - Imported
+        detail:
+          findings:
+            ProductName:
+              - Macie
+            Types:
+              - prefix: Software and Configuration Checks/AWS Security Best Practices/Policy:IAMUser-S3
+            WorkflowState:
+              - NEW
+            RecordState:
+              - ACTIVE
+      Name: Autoremediate_Macie_Policy_Finding
+      State: DISABLED
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - RemediateS3BucketB3F4FC9C
+              - Arn
+          Id: Target0
+  AutomatedRespondMaciePolicyfindingAllowEventRuleMacieRemediationStackRemediateS3Bucket04BBDB0477356758:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - RemediateS3BucketB3F4FC9C
+          - Arn
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+          - AutomatedRespondMaciePolicyfinding0497B775
+          - Arn
+  CustomActionRespondMacieDatafindingC6FB98DF:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Invoked from Custom Action to respond to a Macie S3 Sensitive Data finding in Security Hub.
+      EventPattern:
+        source:
+          - aws.securityhub
+        detail-type:
+          - Security Hub Findings - Custom Action
+        resources:
+          - Fn::Join:
+              - ""
+              - - "arn:aws:securityhub:"
+                - Ref: AWS::Region
+                - ":"
+                - Ref: AWS::AccountId
+                - :action/custom/MacieSensitiveData
+      Name: Custom_Action_Macie_Sensitive_Data_Finding
+      State: ENABLED
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - RemediateS3Object37B5F1A5
+              - Arn
+          Id: Target0
+  CustomActionRespondMacieDatafindingAllowEventRuleMacieRemediationStackRemediateS3Object62EE29C6A9D93A86:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - RemediateS3Object37B5F1A5
+          - Arn
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+          - CustomActionRespondMacieDatafindingC6FB98DF
+          - Arn
+  CustomActionRespondMaciePolicyfinding69280C98:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Invoked from Custom Action to respond to a Macie S3 Bucket Policy finding in Security Hub.
+      EventPattern:
+        source:
+          - aws.securityhub
+        detail-type:
+          - Security Hub Findings - Custom Action
+        resources:
+          - Fn::Join:
+              - ""
+              - - "arn:aws:securityhub:"
+                - Ref: AWS::Region
+                - ":"
+                - Ref: AWS::AccountId
+                - :action/custom/MacieS3BucketPolicy
+      Name: Custom_Action_Macie_Policy_Finding
+      State: ENABLED
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - RemediateS3BucketB3F4FC9C
+              - Arn
+          Id: Target0
+  CustomActionRespondMaciePolicyfindingAllowEventRuleMacieRemediationStackRemediateS3Bucket04BBDB0493E36F1C:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - RemediateS3BucketB3F4FC9C
+          - Arn
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+          - CustomActionRespondMaciePolicyfinding69280C98
+          - Arn
+Parameters:
+  LambdaCodeSourceS3Bucket:
+    Type: String
+    Description: S3 bucket name where lambda code zip files are stored.
+  CreateSecHubCustomAction:
+    Type: String
+    Description: S3 key for lambda source code for the CreateSecHubCustomAction Function.
+  ResourceProviderframeworkonEvent:
+    Type: String
+    Description:  S3 key for lambda source code for the ResourceProviderframeworkonEvent Function. 
+  RemediateS3Object:
+    Type: String
+    Description:  S3 key for lambda source code for the RemediateS3Object Function. 
+  RemediateS3Bucket:
+    Type: String
+    Description:  S3 key for lambda source code for the RemediateS3Bucket Function.

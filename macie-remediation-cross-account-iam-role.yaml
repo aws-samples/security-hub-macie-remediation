@@ -1,0 +1,100 @@
+Parameters:
+  solutionaccount:
+    Type: String
+    Description: AWS Account Macie remediation solution was deployed in.
+Resources:
+  remediates3bucketrole6483CD8F:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::Join:
+                  - ""
+                  - - "arn:aws:iam::"
+                    - Ref: solutionaccount
+                    - :role/Macie_S3_Bucket_Remediation
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      RoleName: Macie_S3_Bucket_Remediation
+  lambdaRemediateS3BucketManagedPolicy990D39AA:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+            Effect: Allow
+            Resource: "*"
+            Sid: KMSUse
+          - Action:
+              - s3:PutBucketPublicAccessBlock
+              - s3:PutBucketTagging
+              - s3:PutEncryptionConfiguration
+            Effect: Allow
+            Resource: "*"
+            Sid: S3RemediateBucket
+          - Action: securityhub:BatchUpdateFindings
+            Effect: Allow
+            Resource: "*"
+            Sid: SecurityHubUpdate
+        Version: "2012-10-17"
+      Description: ""
+      ManagedPolicyName: lambdaRemediateS3BucketManagedPolicy
+      Path: /
+      Roles:
+        - Ref: remediates3bucketrole6483CD8F
+  remediates3objectroleD3CAB19B:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              AWS:
+                Fn::Join:
+                  - ""
+                  - - "arn:aws:iam::"
+                    - Ref: solutionaccount
+                    - :role/Macie_S3_Object_Remediation
+        Version: "2012-10-17"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      RoleName: Macie_S3_Object_Remediation
+  lambdaRemediateS3ObjectManagedPolicy74407B44:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Statement:
+          - Action:
+              - kms:Decrypt
+              - kms:DescribeKey
+              - kms:Encrypt
+              - kms:GenerateDataKey*
+            Effect: Allow
+            Resource: "*"
+            Sid: kmsAllowAccess
+          - Action:
+              - s3:PutObject
+              - s3:PutObjectTagging
+            Effect: Allow
+            Resource: "*"
+            Sid: S3RemediateObject
+          - Action: securityhub:BatchUpdateFindings
+            Effect: Allow
+            Resource: "*"
+            Sid: SecurityHubUpdate
+        Version: "2012-10-17"
+      Description: ""
+      ManagedPolicyName: lambdaRemediateS3ObjectManagedPolicy
+      Path: /
+      Roles:
+        - Ref: remediates3objectroleD3CAB19B
