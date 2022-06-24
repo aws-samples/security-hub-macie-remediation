@@ -2,11 +2,11 @@ import { Stack, StackProps, Fn, CfnParameter } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 
-export class MacieRemediationStack extends Stack {
+export class MacieRemediationIAMStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const solution_account = new CfnParameter(this, 'ssm_vosolution_accountlatile_memory_enabled', {
+    const solution_account = new CfnParameter(this, 'solution_account', {
       type: 'String',
       description: 'AWS Account Macie remediation solution was deployed in.'
     })
