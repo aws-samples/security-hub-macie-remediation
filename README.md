@@ -12,7 +12,7 @@ AWS Resources Include:
 
 Alternatively, you can deploy this solution using the CloudFormation template [macie-remediation-solution](macie-remediation-solution.yaml). You will need to download the lambda functions into a zip file and add the objects to a new or existing S3 bucket. Once added, you will need to pass the S3 bucket name and object keys (.zip files) in the CloudFormation parameters
 - LambdaCodeSourceS3Bucket
-- [RemediateS3Bucket](.macie_remediation_cdk/lambdas/remediate_s3_bucket/remediate_s3_bucket.py)
+- [RemediateS3Bucket](./macie_remediation_cdk/lambdas/remediate_s3_bucket/remediate_s3_bucket.py)
 - [RemediateS3Object](./macie_remediation_cdk/lambdas/remediate_s3_object/remediate_s3_object.py)
 - [CreateSecHubCustomAction](./macie_remediation_cdk/lambdas/sechub_custom_resource/create_sh_custom_action.py)
 - [ResourceProviderFramework](./macie_remediation_cdk/lambdas/resource_provider/resource_provider.zip)
