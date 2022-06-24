@@ -17,7 +17,7 @@ Alternatively, you can deploy this solution using the CloudFormation template [m
 - [CreateSecHubCustomAction](./macie_remediation_cdk/lambdas/sechub_custom_resource/create_sh_custom_action.py)
 - [ResourceProviderFramework](./macie_remediation_cdk/lambdas/resource_provider/resource_provider.zip)
 
-Optional: If deploying for cross-account remediation, you will also need to deploy [macie-remediation-cross-account-iam-role](macie-remediation-cross-account-iam-role.yaml). The only parameter required is the `solution_account`, which will be the AWS account where the previous CloudFormation template is deployed. This allows the lambda function to assume the IAM role and take action against the appropriate resources in the AWS account where the finding occurred.
+Optional: If deploying for cross-account remediation, you will also need to deploy [macie-remediation-cross-account-iam-role](macie-remediation-cross-account-iam-role.yaml). The only parameter required is the `solutionaccount`, which will be the AWS account where the previous CloudFormation template is deployed. This allows the lambda function to assume the IAM role and take action against the appropriate resources in the AWS account where the finding occurred.
 
 ## Prerequisites
 
@@ -42,7 +42,7 @@ To build this app, you need to be in the project root folder. Then run the follo
     $ cdk deploy MacieRemediationStack
     <deploys the solution resources into the the centralized security account>
 
-    $ cdk deploy MacieRemediationIAMStack --paramters solution_account=<INSERT CENTRAL SECURITY AWS ACCOUNT>
+    $ cdk deploy MacieRemediationIAMStack --paramters solutionaccount=<INSERT CENTRAL SECURITY AWS ACCOUNT>
     <deploys an optional IAM role if you want to remediate resources cross-account>
 
 ## CDK Toolkit
