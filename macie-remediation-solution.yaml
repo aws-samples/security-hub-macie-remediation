@@ -532,15 +532,20 @@ Parameters:
   LambdaCodeSourceS3Bucket:
     Type: String
     Description: S3 bucket name where lambda code zip files are stored.
+    Default: awsiammedia
   CreateSecHubCustomAction:
     Type: String
     Description: S3 key for lambda source code for the CreateSecHubCustomAction Function.
+    Default: public/sample/1368-security-hub-custom-actions-to-remediate-s3/create_sh_custom_action.zip
   ResourceProviderframeworkonEvent:
     Type: String
     Description:  S3 key for lambda source code for the ResourceProviderframeworkonEvent Function. 
+    Default: public/sample/1368-security-hub-custom-actions-to-remediate-s3/resource_provider.zip
   RemediateS3Object:
     Type: String
     Description:  S3 key for lambda source code for the RemediateS3Object Function. 
+    Default: public/sample/1368-security-hub-custom-actions-to-remediate-s3/remediate_s3_object.zip
   RemediateS3Bucket:
     Type: String
     Description:  S3 key for lambda source code for the RemediateS3Bucket Function.
+    Default: public/sample/1368-security-hub-custom-actions-to-remediate-s3/remediate_s3_bucket.zip
